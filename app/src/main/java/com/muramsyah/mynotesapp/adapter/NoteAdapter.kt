@@ -64,7 +64,7 @@ class NoteAdapter(private val activity: Activity) : RecyclerView.Adapter<NoteAda
                             putExtra(NoteAddUpdateActivity.EXTRA_POSITION, position)
                             putExtra(NoteAddUpdateActivity.EXTRA_NOTE, note)
                         }
-                        activity.startActivityForResult(intent, NoteAddUpdateActivity.REQUEST_UPDATE)
+                        activity.startActivity(intent)
                     }
 
                 }))

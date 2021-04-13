@@ -1,14 +1,17 @@
 package com.muramsyah.mynotesapp
 
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
+import android.database.ContentObserver
 import android.os.Bundle
-import android.os.PersistableBundle
+import android.os.Handler
+import android.os.HandlerThread
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
 import com.muramsyah.mynotesapp.adapter.NoteAdapter
 import com.muramsyah.mynotesapp.databinding.ActivityMainBinding
+import com.muramsyah.mynotesapp.db.DatabaseContract.NoteColumns.Companion.CONTENT_URI
 import com.muramsyah.mynotesapp.db.NoteHelper
 import com.muramsyah.mynotesapp.entity.Note
 import com.muramsyah.mynotesapp.helper.MappingHelper
@@ -40,8 +43,20 @@ class MainActivity : AppCompatActivity() {
 
         binding.fabAdd.setOnClickListener {
             val intent = Intent(this@MainActivity, NoteAddUpdateActivity::class.java)
-            startActivityForResult(intent, NoteAddUpdateActivity.REQUEST_ADD)
+            startActivity(intent)
         }
+
+        val handlerThread = HandlerThread("DataObserver")
+        handlerThread.start()
+        val handler = Handler(handlerThread.looper)
+
+        val myObserver = object : ContentObserver(handler) {
+            override fun onChange(selfChange: Boolean) {
+                loadNotesAsync()
+            }
+        }
+
+        contentResolver.registerContentObserver(CONTENT_URI, true, myObserver)
 
         if (savedInstanceState == null) {
             loadNotesAsync()
@@ -59,7 +74,8 @@ class MainActivity : AppCompatActivity() {
             val noteHelper = NoteHelper.getInstance(applicationContext)
             noteHelper.open()
             val deferredNotes = async(Dispatchers.IO) {
-                val cursor = noteHelper.queryAll()
+                // CONTENT_URI = content://com.muramsyah.notesapp/note
+                val cursor = contentResolver.query(CONTENT_URI, null, null, null, null)
                 MappingHelper.mapCursorToArrayList(cursor)
             }
             binding.progressBar.visibility = View.INVISIBLE
@@ -117,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Menampilkan snackbar
     private fun showSnackbarMessage(message: String) {
         Snackbar.make(binding.rvNotes, message, Snackbar.LENGTH_SHORT).show()
     }
